@@ -15,6 +15,7 @@ public class EastSelectPanel extends JPanel
         ElementButton liquidsButton = new ElementButton(ElementType.getLiquids(), southSelectPanel);
         ElementButton immovableSolidsButton = new ElementButton(ElementType.getImmovableSolids(), southSelectPanel);
         ElementButton movableSolidsButton = new ElementButton(ElementType.getMovableSolids(), southSelectPanel);
+
         this.add(gasesButton);
         this.add(liquidsButton);
         this.add(immovableSolidsButton);
