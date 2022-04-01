@@ -1,12 +1,11 @@
 package cellular;
 
-import cellular.GamePanel;
 import elements.ElementType;
 import util.ElementButton;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
+
 
 public class EastSelectPanel extends JPanel
 {
