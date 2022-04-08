@@ -1,7 +1,8 @@
 package elements;
 
-import elements.liquid.Water;
-import elements.solid.immovable.Iron;
+import elements.gas.*;
+import elements.liquid.*;
+import elements.solid.immovable.*;
 import elements.solid.movable.*;
 
 import java.util.*;
@@ -17,6 +18,14 @@ public enum ElementType
             return new EmptyCell(x, y);
         }
     },
+    PARTICLE(Particle.class, ClassType.PARTICLE)
+    {
+        @Override
+        public Element createElementByMatrix(int x, int y)
+        {
+            throw new IllegalStateException();
+        }
+    },
     SAND(Sand.class, ClassType.MOVABLESOLID)
     {
         @Override
@@ -25,12 +34,28 @@ public enum ElementType
             return new Sand(x, y);
         }
     },
-    Iron(Iron.class, ClassType.IMMOVABLESOLID)
+    COAL(Coal.class, ClassType.MOVABLESOLID)
+    {
+        @Override
+        public Element createElementByMatrix(int x, int y)
+        {
+            return new Coal(x, y);
+        }
+    },
+    IRON(Iron.class, ClassType.IMMOVABLESOLID)
     {
         @Override
         public Element createElementByMatrix(int x, int y)
         {
             return new Iron(x, y);
+        }
+    },
+    WALL(Iron.class, ClassType.IMMOVABLESOLID)
+    {
+        @Override
+        public Element createElementByMatrix(int x, int y)
+        {
+            return new Wall(x, y);
         }
     },
     WATER(Water.class, ClassType.LIQUID)
@@ -39,6 +64,22 @@ public enum ElementType
         public Element createElementByMatrix(int x, int y)
         {
             return new Water(x, y);
+        }
+    },
+    ACID(Water.class, ClassType.LIQUID)
+    {
+        @Override
+        public Element createElementByMatrix(int x, int y)
+        {
+            return new Acid(x, y);
+        }
+    },
+    HF(HF.class, ClassType.GAS)
+    {
+        @Override
+        public Element createElementByMatrix(int x, int y)
+        {
+            return new HF(x, y);
         }
     };
 

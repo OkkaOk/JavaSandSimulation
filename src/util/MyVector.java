@@ -11,6 +11,16 @@ public class MyVector
         y = j;
     }
 
+    public int getX()
+    {
+        return (int) x;
+    }
+
+    public int getY()
+    {
+        return (int) y;
+    }
+
     public MyVector copy()
     {
         return new MyVector(x, y);
@@ -41,6 +51,20 @@ public class MyVector
     {
         x *= scalar;
         y *= scalar;
+        return this;
+    }
+
+    public MyVector normalize()
+    {
+        return mult(1 / mag());
+    }
+
+    public MyVector rotate(double radians)
+    {
+        double oldX = x;
+        x = x * Math.cos(radians) - y * Math.sin(radians);
+        y = oldX * Math.sin(radians) + y * Math.cos(radians);
+
         return this;
     }
 

@@ -2,6 +2,7 @@ package elements.solid;
 
 import cellular.CellularMatrix;
 import elements.Element;
+import util.MyVector;
 
 public abstract class Solid extends Element
 {
@@ -15,4 +16,10 @@ public abstract class Solid extends Element
     {
 
     }
+
+    /*@Override
+    public boolean wouldMoveNextFrame(CellularMatrix matrix)
+    {
+        return false;
+    }*/
 }

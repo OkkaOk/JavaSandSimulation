@@ -1,29 +1,41 @@
 package cellular;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.math.Bresenham2;
 import com.badlogic.gdx.math.GridPoint2;
 import com.badlogic.gdx.utils.Array;
+import elements.Element;
 import elements.ElementType;
 import elements.EmptyCell;
+import util.MyVector;
 
 import java.awt.*;
 
 public class InputManager
 {
-    private enum BrushType
+    private enum MouseMode
     {
-        Square, Circle, Triangle
+        SPAWN, VELOCITY
+    }
+    public enum BrushType
+    {
+        Square, Circle, Rectangle
     }
     private final int minBrushSize = 1;
     private final int maxBrushSize = 200;
     public int brushSize = 5;
     public BrushType brushType = BrushType.Circle;
+    public MouseMode mouseMode = MouseMode.SPAWN;
     public static ElementType currentElement = ElementType.SAND;
+
+    public Point rectangleStart;
+    public Point rectangleEnd;
 
     private boolean paused = false;
 
     public Point mouse;
     public Point lastMouse;
+    public MyVector mouseDiff;
     public boolean mousePressed = false;
     public int mouseButton = 0;
 
@@ -34,10 +46,20 @@ public class InputManager
         if(mouse != null)
         {
             g.setColor(Color.white);
+            int size = GamePanel.pixelSize;
+            int mx = mouse.x * size;
+            int my = mouse.y * size;
+            int d = 2*brushSize-size;
             if(brushType == BrushType.Square)
-                g.drawRect(mouse.x-brushSize+1, mouse.y-brushSize+1, 2*brushSize-1, 2*brushSize-1);
+                g.drawRect(mx-brushSize+size, my-brushSize+size, d-1, d-1);
             else if(brushType == BrushType.Circle)
-                g.drawOval(mouse.x - brushSize, mouse.y - brushSize, 2*brushSize, 2*brushSize);
+                g.drawOval(mx-brushSize+size, my-brushSize+size, d, d);
+            else if(brushType == BrushType.Rectangle && rectangleStart != null)
+            {
+                Point start = new Point(Math.min(rectangleStart.x*size, mx), Math.min(rectangleStart.y*size, my));
+                Point end = new Point(Math.max(rectangleStart.x*size, mx), Math.max(rectangleStart.y*size, my));
+                g.drawRect(start.x, start.y, end.x-start.x, end.y-start.y);
+            }
         }
     }
 
@@ -51,6 +73,11 @@ public class InputManager
         return paused;
     }
 
+    public void setPaused(boolean state)
+    {
+        paused = state;
+    }
+
     public static void setCurrentElement(ElementType elementType)
     {
         InputManager.currentElement = elementType;
@@ -58,48 +85,63 @@ public class InputManager
 
     public void adjustBrushSize(int delta)
     {
-        brushSize -= delta;
+        brushSize -= delta*GamePanel.pixelSize;
         if (brushSize > maxBrushSize) brushSize = maxBrushSize;
-        if (brushSize < minBrushSize) brushSize = minBrushSize;
+        if (brushSize < minBrushSize*GamePanel.pixelSize) brushSize = minBrushSize*GamePanel.pixelSize;
     }
 
     public void handleMouseInput(CellularMatrix matrix)
     {
-        if(mouse == null && lastMouse != null)
-            mouse = lastMouse;
+        if(mouse == null && lastMouse != null && mouseDiff != null)
+            mouse = toBound(matrix, new Point(lastMouse.x + mouseDiff.getX()*10, lastMouse.y + mouseDiff.getY()*10));
         if(mousePressed)
         {
             if (mouse.x < matrix.width && mouse.y < matrix.height)
             {
+                Array<GridPoint2> points = bresenham.line(lastMouse.x, lastMouse.y, mouse.x, mouse.y);
                 if(mouseButton == 1)
                 {
-                    Array<GridPoint2> points = bresenham.line(lastMouse.x, lastMouse.y, mouse.x, mouse.y);
-                    for(int i = 0; i < points.size; i++)
+                    if(brushType == BrushType.Rectangle) return;
+                    if(mouseMode == MouseMode.SPAWN)
                     {
-                        GridPoint2 pt = points.get(i);
-                        spawnElement(matrix, pt, false);
+                        for (GridPoint2 point : points)
+                        {
+                            spawnElement(matrix, point, false);
+                        }
                     }
                 }
                 else if(mouseButton == 3)
                 {
-                    Array<GridPoint2> points = bresenham.line(lastMouse.x, lastMouse.y, mouse.x, mouse.y);
-                    for(int i = 0; i < points.size; i++)
+                    if(brushType == BrushType.Rectangle) return;
+                    for(GridPoint2 point : points)
                     {
-                        GridPoint2 pt = points.get(i);
-                        spawnElement(matrix, pt, true);
+                        spawnElement(matrix, point, true);
                     }
                 }
             }
         }
     }
 
+    public Point toBound(CellularMatrix matrix, Point point)
+    {
+        double currX = point.x;
+        double currY = point.y;
+        while (!matrix.isWithinBounds((int) currX, (int) currY))
+        {
+            currX -= mouseDiff.normalize().x;
+            currY -= mouseDiff.normalize().y;
+        }
+
+        return new Point((int) currX, (int) currY);
+    }
+
     public void spawnElement(CellularMatrix matrix, GridPoint2 pos, boolean delete)
     {
-        int brushToElementWidth = brushSize / matrix.elementSize;
-        int xStart = (int) (pos.x - brushToElementWidth + 1);
-        int xEnd = (int) (pos.x + brushToElementWidth - 1);
-        int yStart = (int) (pos.y - brushToElementWidth + 1);
-        int yEnd = (int) (pos.y + brushToElementWidth - 1);
+        int brushToElementWidth = brushSize / GamePanel.pixelSize;
+        int xStart = pos.x - brushToElementWidth + 1;
+        int xEnd = pos.x + brushToElementWidth - 1;
+        int yStart = pos.y - brushToElementWidth + 1;
+        int yEnd = pos.y + brushToElementWidth - 1;
         switch (brushType)
         {
             case Square:
@@ -110,15 +152,13 @@ public class InputManager
                         int x1 = limit(x, 0, matrix.width-1);
                         int y1 = limit(y, 0, matrix.height-1);
 
-                        Chunk currChunk = matrix.chunkFromCoordinates(x1, y1);
-                        currChunk.sleeping = false;
-                        currChunk.sleepingNextFrame = false;
+                        matrix.activateChunkForCoordinates(x1, y1);
 
                         if(!delete)
                         {
                             if(matrix.grid[x1][y1] instanceof EmptyCell)
                             {
-                                matrix.set(this.currentElement.createElementByMatrix(x1, y1));
+                                matrix.set(currentElement.createElementByMatrix(x1, y1));
                                 matrix.particles++;
                             }
                         }
@@ -148,15 +188,13 @@ public class InputManager
                         if(Math.sqrt(xDiff*xDiff + yDiff*yDiff) > brushToElementWidth)
                             continue;
 
-                        Chunk currChunk = matrix.chunkFromCoordinates(x1, y1);
-                        currChunk.sleeping = false;
-                        currChunk.sleepingNextFrame = false;
+                        matrix.activateChunkForCoordinates(x1, y1);
 
                         if(!delete)
                         {
                             if(matrix.grid[x1][y1] instanceof EmptyCell)
                             {
-                                matrix.set(this.currentElement.createElementByMatrix(x1, y1));
+                                matrix.set(currentElement.createElementByMatrix(x1, y1));
                                 matrix.particles++;
                             }
                         }
@@ -173,12 +211,79 @@ public class InputManager
                     }
                 }
                 break;
-            case Triangle:
-                break;
         }
     }
+    public void spawnElementWithGrid(CellularMatrix matrix, boolean delete)
+    {
+        spawnElementWithGrid(matrix, rectangleStart, rectangleEnd, delete);
+    }
+    public void spawnElementWithGrid(CellularMatrix matrix, Point a, Point b, boolean delete)
+    {
+        Point start = new Point(Math.min(a.x, b.x), Math.min(a.y, b.y));
+        Point end = new Point(Math.max(a.x, b.x), Math.max(a.y, b.y));
+        if(start == null || end == null) return;
+        for (int x = start.x; x <= end.x; x++)
+        {
+            for (int y = start.y; y <= end.y; y++)
+            {
+                int x1 = limit(x, 0, matrix.width-1);
+                int y1 = limit(y, 0, matrix.height-1);
+
+                matrix.activateChunkForCoordinates(x1, y1);
+                Element curr = matrix.get(x1, y1);
+                if(!delete)
+                {
+                    if(curr instanceof EmptyCell)
+                    {
+                        matrix.set(currentElement.createElementByMatrix(x1, y1));
+                        matrix.particles++;
+                    }
+                }
+                else
+                {
+                    if(curr instanceof EmptyCell)
+                        continue;
+                    if(!curr.locked)
+                    {
+                        matrix.set(new EmptyCell(x1, y1));
+                        matrix.particles--;
+                    }
+                }
+            }
+        }
+    }
+
     public int limit(int value, int min, int max)
     {
         return Math.max(min, Math.min(value, max));
+    }
+
+    public void cycleBrushType()
+    {
+        switch (brushType)
+        {
+            case Square:
+                this.brushType = BrushType.Circle;
+                break;
+            case Circle:
+                this.brushType = BrushType.Rectangle;
+                break;
+            case Rectangle:
+                this.brushType = BrushType.Square;
+                break;
+        }
+    }
+
+    public void cycleMouseModes()
+    {
+        switch (mouseMode)
+        {
+            case SPAWN:
+                this.mouseMode = MouseMode.VELOCITY;
+                break;
+            case VELOCITY:
+                this.mouseMode = MouseMode.SPAWN;
+                break;
+        }
     }
 }

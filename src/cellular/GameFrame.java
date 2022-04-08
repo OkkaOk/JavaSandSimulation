@@ -12,7 +12,7 @@ public class GameFrame extends JFrame
     public GameFrame()
     {
         myPanel = new GamePanel();
-        southSelectPanel = new SouthSelectPanel();
+        southSelectPanel = new SouthSelectPanel(myPanel.matrix);
         eastSelectPanel = new EastSelectPanel(southSelectPanel);
 
         this.add(myPanel, BorderLayout.CENTER);

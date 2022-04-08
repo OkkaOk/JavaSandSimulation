@@ -1,5 +1,8 @@
 package elements.liquid;
 
+import cellular.CellularMatrix;
+import elements.ElementType;
+
 import java.awt.*;
 
 public class Water extends Liquid
@@ -9,8 +12,18 @@ public class Water extends Liquid
         super(x, y);
         shortName = "WATR";
         mass = 1000;
-        state = 2;
-        color = new Color(0, 0, 255);
-        bounciness = 0.7;
+        baseColor = new Color(0, 0, 255);
+        addRandomColor(0, 10, 20);
+        bounciness = 0.7f;
+        dispersionRate = 5;
+
+        description = "Water. Freezes at 0°C and boils at 100°C.";
+    }
+
+    @Override
+    public boolean receiveHeat(CellularMatrix matrix, int heat)
+    {
+        dieAndReplace(matrix, ElementType.COAL);
+        return true;
     }
 }

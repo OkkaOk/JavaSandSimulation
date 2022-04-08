@@ -1,7 +1,9 @@
 package elements.solid.immovable;
 
 import cellular.CellularMatrix;
+import elements.Element;
 import elements.solid.Solid;
+import util.MyVector;
 
 public abstract class ImmovableSolid extends Solid
 {
@@ -16,4 +18,10 @@ public abstract class ImmovableSolid extends Solid
         super.step(matrix);
         //System.out.println(dx + " " + dy);
     }
+
+    /*@Override
+    public boolean wouldMoveNextFrame(CellularMatrix matrix)
+    {
+        return false;
+    }*/
 }
